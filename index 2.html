@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PR Intelligence Engine</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --glass: rgba(255,255,255,0.06);
+      --glass-border: rgba(255,255,255,0.12);
+      --glass-hover: rgba(255,255,255,0.10);
+      --accent: #c8f04a;
+      --accent-dim: rgba(200,240,74,0.15);
+      --accent-glow: rgba(200,240,74,0.3);
+      --red: #ff5e5e;
+      --amber: #ffb347;
+      --green: #4affa0;
+      --text: #f0ede8;
+      --text-muted: rgba(240,237,232,0.5);
+      --text-dim: rgba(240,237,232,0.3);
+      --bg1: #0b0d10;
+      --bg2: #0f1218;
+      --radius: 18px;
+      --radius-sm: 10px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg1);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .bg-orbs {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      overflow: hidden;
+    }
+
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.18;
+      animation: drift 18s ease-in-out infinite;
+    }
+
+    .orb1 { width: 500px; height: 500px; background: #3b82f6; top: -100px; left: -100px; animation-delay: 0s; }
+    .orb2 { width: 400px; height: 400px; background: #8b5cf6; bottom: -80px; right: -80px; animation-delay: -6s; }
+    .orb3 { width: 300px; height: 300px; background: var(--accent); top: 40%; left: 60%; animation-delay: -12s; opacity: 0.08; }
+
+    @keyframes drift {
+      0%,100% { transform: translate(0,0) scale(1); }
+      33% { transform: translate(40px,-30px) scale(1.05); }
+      66% { transform: translate(-20px,40px) scale(0.95); }
+    }
+
+    body::after {
+      content: '';
+      position: fixed; inset: 0; z-index: 1;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none; opacity: 0.4;
+    }
+
+    .app {
+      position: relative; z-index: 2;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 3rem 1.5rem 4rem;
+    }
+
+    .header {
+      margin-bottom: 2.5rem;
+      animation: fadeUp 0.6s ease both;
+    }
+
+    .header-eyebrow {
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .header-eyebrow::before {
+      content: '';
+      display: block;
+      width: 24px; height: 1px;
+      background: var(--accent);
+    }
+
+    .header h1 {
+      font-family: 'DM Serif Display', serif;
+      font-size: clamp(32px, 5vw, 48px);
+      font-weight: 400;
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+      margin-bottom: 10px;
+    }
+
+    .header h1 em {
+      font-style: italic;
+      color: var(--accent);
+    }
+
+    .header p {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.6;
+      max-width: 520px;
+    }
+
+    .glass {
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+
+    .input-card {
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      animation: fadeUp 0.6s 0.1s ease both;
+    }
+
+    .input-label {
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 10px;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 140px;
+      resize: vertical;
+      font-size: 14px;
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 300;
+      padding: 14px 16px;
+      background: rgba(0,0,0,0.3);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      line-height: 1.7;
+      transition: border-color 0.2s;
+      display: block;
+    }
+
+    textarea::placeholder { color: var(--text-dim); }
+    textarea:focus { outline: none; border-color: rgba(200,240,74,0.4); }
+
+    .input-footer {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+
+    .input-footer-left { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+    select {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      padding: 9px 14px;
+      background: rgba(0,0,0,0.4);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='rgba(240,237,232,0.4)' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 32px;
+      transition: border-color 0.2s;
+    }
+
+    select:focus { outline: none; border-color: rgba(200,240,74,0.4); }
+
+    .btn-analyze {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      padding: 9px 22px;
+      background: var(--accent);
+      color: #0b0d10;
+      border: none;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      letter-spacing: 0.02em;
+      transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+      box-shadow: 0 0 20px var(--accent-glow);
+    }
+
+    .btn-analyze:hover { transform: translateY(-1px); box-shadow: 0 4px 28px var(--accent-glow); }
+    .btn-analyze:active { transform: scale(0.97); }
+    .btn-analyze:disabled { opacity: 0.35; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    .sample-btn {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 12px;
+      color: var(--text-muted);
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0;
+      transition: color 0.2s;
+    }
+
+    .sample-btn:hover { color: var(--accent); }
+
+    .loading {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--text-muted);
+      padding: 12px 0 4px;
+    }
+
+    .loading-dots { display: flex; gap: 4px; }
+
+    .loading-dots span {
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: blink 1.2s infinite;
+    }
+
+    .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes blink { 0%,80%,100%{opacity:0.2} 40%{opacity:1} }
+
+    .err {
+      display: none;
+      font-size: 13px;
+      color: var(--red);
+      padding: 10px 0 0;
+    }
+
+    .note {
+      font-size: 12px;
+      color: var(--text-dim);
+      line-height: 1.5;
+      margin-top: 10px;
+    }
+
+    #resultsEl {
+      display: none;
+      flex-direction: column;
+      gap: 1.25rem;
+      animation: fadeUp 0.5s ease both;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    @media (max-width: 520px) { .metrics { grid-template-columns: 1fr; } }
+
+    .metric-card {
+      padding: 1.25rem;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.2s, border-color 0.2s;
+    }
+
+    .metric-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: var(--accent);
+      opacity: 0.5;
+      border-radius: 2px 2px 0 0;
+    }
+
+    .metric-card:hover { transform: translateY(-2px); border-color: var(--glass-border); }
+
+    .metric-lbl {
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 10px;
+    }
+
+    .metric-val {
+      font-family: 'DM Serif Display', serif;
+      font-size: 28px;
+      font-weight: 400;
+      line-height: 1;
+      margin-bottom: 6px;
+    }
+
+    .metric-sub { font-size: 12px; color: var(--text-muted); }
+
+    .section-lbl {
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 10px;
+    }
+
+    .signals-card { padding: 1.25rem; }
+
+    .tag-row { display: flex; flex-wrap: wrap; gap: 8px; }
+
+    .tag {
+      font-size: 12px;
+      font-weight: 400;
+      padding: 5px 13px;
+      border-radius: 999px;
+      border: 1px solid;
+      letter-spacing: 0.01em;
+    }
+
+    .tpos { background: rgba(74,255,160,0.08); border-color: rgba(74,255,160,0.25); color: var(--green); }
+    .tneg { background: rgba(255,94,94,0.08); border-color: rgba(255,94,94,0.25); color: var(--red); }
+    .tneu { background: rgba(255,255,255,0.05); border-color: var(--glass-border); color: var(--text-muted); }
+
+    .text-card { padding: 1.5rem; }
+
+    .text-card p {
+      font-size: 14px;
+      line-height: 1.8;
+      color: rgba(240,237,232,0.8);
+      font-weight: 300;
+    }
+
+    .draft-card { padding: 1.5rem; border-color: rgba(200,240,74,0.15); }
+
+    .draft-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 12px;
+    }
+
+    .draft-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: rgba(200,240,74,0.15);
+    }
+
+    .draft-card p {
+      font-size: 14px;
+      line-height: 1.85;
+      color: rgba(240,237,232,0.85);
+      font-weight: 300;
+      font-style: italic;
+      white-space: pre-wrap;
+    }
+
+    .copy-btn {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 11px;
+      color: var(--text-dim);
+      background: none;
+      border: 1px solid var(--glass-border);
+      border-radius: 6px;
+      padding: 4px 10px;
+      cursor: pointer;
+      margin-top: 12px;
+      transition: color 0.2s, border-color 0.2s;
+      display: block;
+      margin-left: auto;
+    }
+
+    .copy-btn:hover { color: var(--accent); border-color: rgba(200,240,74,0.3); }
+
+    .gauge-wrap { margin-top: 8px; }
+
+    .gauge-track {
+      width: 100%;
+      height: 3px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .gauge-fill {
+      height: 100%;
+      border-radius: 2px;
+      transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="bg-orbs">
+    <div class="orb orb1"></div>
+    <div class="orb orb2"></div>
+    <div class="orb orb3"></div>
+  </div>
+
+  <div class="app">
+    <header class="header">
+      <div class="header-eyebrow">Two Signal</div>
+      <h1>PR <em>Intelligence</em><br>Engine</h1>
+      <p>Paste any press mention, article, review, or social post. Two Signal identifies sentiment, reputation risk, key narrative signals, response urgency, and a tailored communications response.</p>
+    </header>
+
+    <div class="glass input-card">
+      <div class="input-label">Article or mention</div>
+      <textarea id="txt" placeholder="Paste a news article, tweet, review, or press mention here..."></textarea>
+
+      <div class="input-footer">
+        <div class="input-footer-left">
+          <select id="industry">
+            <option value="a brand">Select industry</option>
+            <option value="a technology company">Technology</option>
+            <option value="a healthcare or pharmaceutical company">Healthcare / pharma</option>
+            <option value="a financial services or banking institution">Financial services</option>
+            <option value="a consumer goods or retail brand">Consumer goods / retail</option>
+            <option value="an energy or utilities company">Energy / utilities</option>
+            <option value="a food and beverage brand">Food &amp; beverage</option>
+            <option value="a media or entertainment company">Media / entertainment</option>
+            <option value="a government or public sector organization">Government / public sector</option>
+            <option value="a nonprofit or NGO">Nonprofit / NGO</option>
+          </select>
+          <button class="btn-analyze" id="runBtn">Analyze</button>
+        </div>
+        <button class="sample-btn" id="sampleBtn">Load sample</button>
+      </div>
+
+      <div class="note">First run may take a moment while the analysis model loads. Results are customized based on the language, risk indicators, and reputation signals in the text.</div>
+      <div id="errEl" class="err"></div>
+      <div id="loadEl" class="loading">
+        <div class="loading-dots"><span></span><span></span><span></span></div>
+        <span id="loadMsg">Loading browser model...</span>
+      </div>
+    </div>
+
+    <div id="resultsEl">
+      <div class="metrics">
+        <div class="glass metric-card">
+          <div class="metric-lbl">Sentiment</div>
+          <div class="metric-val" id="mSent">—</div>
+          <div class="metric-sub" id="mSentSub"></div>
+          <div class="gauge-wrap">
+            <div class="gauge-track"><div class="gauge-fill" id="sentGauge" style="width:0%"></div></div>
+          </div>
+        </div>
+
+        <div class="glass metric-card">
+          <div class="metric-lbl">Reputation risk</div>
+          <div class="metric-val" id="mRisk">—</div>
+          <div class="metric-sub" id="mRiskSub"></div>
+          <div class="gauge-wrap">
+            <div class="gauge-track"><div class="gauge-fill" id="riskGauge" style="width:0%"></div></div>
+          </div>
+        </div>
+
+        <div class="glass metric-card">
+          <div class="metric-lbl">Response urgency</div>
+          <div class="metric-val" id="mUrg">—</div>
+          <div class="metric-sub" id="mUrgSub"></div>
+        </div>
+      </div>
+
+      <div>
+        <div class="section-lbl">Key signals detected</div>
+        <div class="glass signals-card">
+          <div class="tag-row" id="tagRow"></div>
+        </div>
+      </div>
+
+      <div>
+        <div class="section-lbl">Analysis summary</div>
+        <div class="glass text-card">
+          <p id="sumText"></p>
+        </div>
+      </div>
+
+      <div>
+        <div class="glass draft-card">
+          <div class="draft-label">Drafted response</div>
+          <p id="draftText"></p>
+          <button class="copy-btn" id="copyBtn">Copy to clipboard</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { pipeline } from "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.2";
+
+    const SAMPLE = `A whistleblower has come forward with documents suggesting that TechVision Corp knowingly shipped faulty battery components in its popular SmartHome Hub devices, despite internal reports flagging safety risks six months ago. The leak, obtained by Reuters, includes internal emails in which senior engineers warned management about potential overheating issues that could pose fire hazards. Three house fires in California and Texas have been linked to the device, though TechVision Corp has not yet confirmed or denied the reports. Consumer advocacy groups are calling for an immediate recall. Shares fell 8% in pre-market trading following the news.`;
+
+    let classifier = null;
+
+    const riskTerms = [
+      "lawsuit", "sued", "court", "legal", "class action", "settlement", "investigation", "probe",
+      "regulator", "regulatory", "fine", "penalty", "recall", "whistleblower", "leak", "leaked",
+      "fraud", "misconduct", "scandal", "boycott", "safety", "hazard", "fire", "death", "injury",
+      "breach", "hack", "cyberattack", "data breach", "privacy", "toxic", "contamination",
+      "discrimination", "harassment", "corruption", "crisis", "backlash", "criticism", "outrage",
+      "complaint", "complaints", "defective", "faulty", "unsafe", "misleading", "greenwashing",
+      "layoffs", "strike", "union", "shortage", "delay", "recalls", "warning"
+    ];
+
+    const positiveTerms = [
+      "award", "growth", "partnership", "innovation", "launch", "expanded", "improved",
+      "strong", "record", "praised", "positive", "trusted", "sustainable", "community",
+      "donation", "investment", "milestone", "successful", "collaboration", "recognized",
+      "breakthrough", "new product", "customer satisfaction", "expansion", "support", "commitment"
+    ];
+
+    const urgencyTerms = [
+      "immediate", "urgent", "breaking", "developing", "recall", "fire", "injury",
+      "death", "regulator", "investigation", "lawsuit", "whistleblower", "leak",
+      "consumer advocacy", "public safety", "hazard", "defective", "data breach", "cyberattack",
+      "class action", "shares fell", "stock fell", "evacuated"
+    ];
+
+    const themeRules = [
+      {
+        label: "Product safety",
+        type: "negative",
+        keywords: ["safety", "hazard", "fire", "injury", "death", "recall", "defective", "faulty", "unsafe", "overheating"],
+        response: "Prioritize safety language, explain what is being reviewed, and avoid minimizing consumer concerns."
+      },
+      {
+        label: "Legal / regulatory exposure",
+        type: "negative",
+        keywords: ["lawsuit", "sued", "court", "class action", "settlement", "regulator", "regulatory", "investigation", "probe", "fine", "penalty"],
+        response: "Keep the response factual, avoid legal conclusions, and confirm cooperation with any relevant process."
+      },
+      {
+        label: "Data / privacy risk",
+        type: "negative",
+        keywords: ["data breach", "privacy", "hack", "cyberattack", "personal information", "user data", "security"],
+        response: "Acknowledge data concerns, reference containment or review steps, and emphasize user protection."
+      },
+      {
+        label: "Workplace / culture issue",
+        type: "negative",
+        keywords: ["discrimination", "harassment", "misconduct", "employee", "workplace", "strike", "union", "layoffs"],
+        response: "Use people-first language, reinforce values, and describe the review or engagement process."
+      },
+      {
+        label: "Consumer backlash",
+        type: "negative",
+        keywords: ["boycott", "backlash", "outrage", "criticism", "complaints", "complaint", "angry", "frustrated"],
+        response: "Show that the organization is listening, identify the concern, and provide a practical next step."
+      },
+      {
+        label: "Financial / market pressure",
+        type: "negative",
+        keywords: ["shares fell", "stock fell", "revenue", "loss", "decline", "bankruptcy", "cost cutting", "profit warning"],
+        response: "Avoid speculation and keep the message focused on business continuity and stakeholder confidence."
+      },
+      {
+        label: "Innovation / launch momentum",
+        type: "positive",
+        keywords: ["launch", "innovation", "new product", "breakthrough", "expanded", "expansion", "milestone"],
+        response: "Amplify the milestone, connect it to customer value, and reinforce forward momentum."
+      },
+      {
+        label: "Partnership / community value",
+        type: "positive",
+        keywords: ["partnership", "collaboration", "community", "donation", "support", "nonprofit", "ngo"],
+        response: "Highlight shared value, community impact, and the credibility of the partnership."
+      },
+      {
+        label: "Sustainability / responsibility",
+        type: "positive",
+        keywords: ["sustainable", "sustainability", "climate", "emissions", "responsible", "green", "environment"],
+        response: "Tie the story to measurable responsibility commitments and avoid vague claims."
+      }
+    ];
+
+    document.getElementById("sampleBtn").addEventListener("click", () => {
+      document.getElementById("txt").value = SAMPLE;
+      document.getElementById("industry").value = "a technology company";
+    });
+
+    document.getElementById("runBtn").addEventListener("click", runAnalysis);
+
+    document.getElementById("copyBtn").addEventListener("click", async () => {
+      const text = document.getElementById("draftText").textContent;
+      await navigator.clipboard.writeText(text);
+      const btn = document.getElementById("copyBtn");
+      btn.textContent = "Copied!";
+      setTimeout(() => { btn.textContent = "Copy to clipboard"; }, 2000);
+    });
+
+    async function getClassifier() {
+      if (!classifier) {
+        document.getElementById("loadMsg").textContent = "Loading browser model...";
+        classifier = await pipeline(
+          "sentiment-analysis",
+          "Xenova/distilbert-base-uncased-finetuned-sst-2-english"
+        );
+      }
+      return classifier;
+    }
+
+    async function runAnalysis() {
+      const text = document.getElementById("txt").value.trim();
+      const industry = document.getElementById("industry").value;
+
+      if (!text) {
+        showErr("Please paste some text first.");
+        return;
+      }
+
+      setLoading(true);
+      hideErr();
+      document.getElementById("resultsEl").style.display = "none";
+
+      try {
+        const model = await getClassifier();
+
+        document.getElementById("loadMsg").textContent = "Running analysis...";
+
+        const shortText = text.slice(0, 4500);
+        const sentimentResult = await model(shortText);
+        const analysis = buildPRAnalysis(text, industry, sentimentResult[0]);
+
+        renderResults(analysis);
+      } catch (error) {
+        showErr("Analysis failed: " + error.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    function buildPRAnalysis(text, industry, sentimentResult) {
+      const lower = text.toLowerCase();
+      const words = lower.match(/\b[a-zA-Z']+\b/g) || [];
+      const sentences = text.split(/[.!?]+/).map(s => s.trim()).filter(Boolean);
+
+      const matchedRisk = uniqueMatches(lower, riskTerms);
+      const matchedPositive = uniqueMatches(lower, positiveTerms);
+      const matchedUrgency = uniqueMatches(lower, urgencyTerms);
+      const matchedThemes = detectThemes(lower);
+
+      const modelLabel = sentimentResult.label;
+      const confidence = sentimentResult.score || 0;
+
+      let sentimentScore = modelLabel === "POSITIVE"
+        ? Math.round(confidence * 100)
+        : Math.round(confidence * -100);
+
+      if (matchedRisk.length >= 3 && sentimentScore > -20) sentimentScore -= 25;
+      if (matchedPositive.length >= 3 && sentimentScore < 20) sentimentScore += 15;
+      sentimentScore = clamp(sentimentScore, -100, 100);
+
+      const sentiment =
+        sentimentScore > 20 ? "Positive" :
+        sentimentScore < -20 ? "Negative" :
+        "Neutral";
+
+      let reputationRisk = 1;
+      reputationRisk += matchedRisk.length * 0.8;
+      reputationRisk += matchedUrgency.length * 0.6;
+      if (sentimentScore < -50) reputationRisk += 2;
+      else if (sentimentScore < -20) reputationRisk += 1;
+      if (containsAny(lower, ["fire", "death", "injury", "hazard", "recall", "lawsuit", "investigation"])) reputationRisk += 2;
+      if (containsAny(lower, ["reuters", "associated press", "bbc", "cnn", "globe and mail", "new york times", "wall street journal"])) reputationRisk += 1;
+      reputationRisk = clamp(reputationRisk, 1, 10);
+
+      const urgency = getUrgency(reputationRisk, matchedUrgency.length, sentimentScore);
+      const urgencyReason = getUrgencyReason(urgency, matchedRisk, matchedUrgency, sentimentScore);
+
+      const signals = [];
+      matchedThemes.forEach(theme => signals.push({ label: theme.label, type: theme.type }));
+      matchedRisk.slice(0, 6).forEach(label => signals.push({ label: titleCase(label), type: "negative" }));
+      matchedPositive.slice(0, 4).forEach(label => signals.push({ label: titleCase(label), type: "positive" }));
+
+      if (sentences.length > 4) signals.push({ label: "Long-form coverage", type: "neutral" });
+      if (words.length > 250) signals.push({ label: "Detailed narrative", type: "neutral" });
+      if (signals.length === 0) signals.push({ label: "Limited explicit risk terms", type: "neutral" });
+
+      const summary = createSummary({
+        text,
+        industry,
+        sentiment,
+        sentimentScore,
+        reputationRisk,
+        urgency,
+        matchedRisk,
+        matchedPositive,
+        matchedUrgency,
+        matchedThemes,
+        sentences
+      });
+
+      const draftResponse = createDraftResponse({
+        industry,
+        sentiment,
+        reputationRisk,
+        urgency,
+        matchedRisk,
+        matchedPositive,
+        matchedThemes
+      });
+
+      return {
+        sentiment,
+        sentimentScore,
+        reputationRisk,
+        urgency,
+        urgencyReason,
+        signals,
+        summary,
+        draftResponse
+      };
+    }
+
+    function createSummary(data) {
+      const riskPhrase = data.matchedRisk.length
+        ? `The main risk signals are ${formatList(data.matchedRisk.slice(0, 5))}.`
+        : "The text does not contain many explicit high-risk terms.";
+
+      const positivePhrase = data.matchedPositive.length
+        ? `Positive signals include ${formatList(data.matchedPositive.slice(0, 4))}.`
+        : "There are limited positive reputation signals in the text.";
+
+      const themePhrase = data.matchedThemes.length
+        ? `The strongest narrative theme is ${data.matchedThemes[0].label.toLowerCase()}. ${data.matchedThemes[0].response}`
+        : "The narrative is broad, so the safest response is to stay factual and monitor for escalation.";
+
+      const issueSentence = extractMostRelevantSentence(data.sentences, [
+        ...data.matchedRisk,
+        ...data.matchedPositive,
+        ...data.matchedUrgency
+      ]);
+
+      const issuePhrase = issueSentence
+        ? `The article appears to centre on: “${trimSentence(issueSentence)}.”`
+        : "The article does not contain one single dominant issue sentence.";
+
+      const riskLevel =
+        data.reputationRisk >= 7 ? "high" :
+        data.reputationRisk >= 4 ? "moderate" :
+        "low";
+
+      return `${issuePhrase} This mention reads as ${data.sentiment.toLowerCase()} overall, with an estimated sentiment score of ${data.sentimentScore > 0 ? "+" : ""}${data.sentimentScore}. Reputation risk is ${riskLevel} at ${Math.round(data.reputationRisk)}/10, and response urgency is ${data.urgency.toLowerCase()}. ${riskPhrase} ${positivePhrase} ${themePhrase}`;
+    }
+
+    function createDraftResponse(data) {
+      const primaryTheme = data.matchedThemes[0];
+      const themeLabel = primaryTheme ? primaryTheme.label.toLowerCase() : "the matter";
+      const responseGuidance = primaryTheme ? primaryTheme.response : "We are reviewing the details and will respond with accurate information where appropriate.";
+
+      if (data.reputationRisk >= 7) {
+        return `We are aware of the concerns related to ${themeLabel} and are taking them seriously. Our immediate priority is to understand the facts, assess any potential impact, and respond responsibly.
+
+${responseGuidance}
+
+We are reviewing the matter carefully and will share further information as appropriate. We remain committed to transparency, accountability, and constructive engagement with stakeholders as this develops.`;
+      }
+
+      if (data.reputationRisk >= 4) {
+        return `We are aware of the discussion related to ${themeLabel} and are reviewing the details carefully. While we do not want to speculate before the facts are clear, we recognize the importance of addressing stakeholder questions directly and responsibly.
+
+${responseGuidance}
+
+We will continue to monitor the situation and provide updates where appropriate.`;
+      }
+
+      if (data.sentiment === "Positive") {
+        return `We are pleased to see positive recognition around ${themeLabel}. This reflects our continued focus on delivering value, building trust, and supporting the people and communities connected to our work.
+
+${responseGuidance}
+
+We appreciate the engagement and look forward to continuing this momentum.`;
+      }
+
+      return `We are aware of the mention related to ${themeLabel} and will continue to monitor the conversation. At this stage, the coverage appears limited in risk, but we remain focused on providing clear, accurate, and responsible communication if further questions emerge.
+
+${responseGuidance}`;
+    }
+
+    function getUrgency(risk, urgencyCount, sentimentScore) {
+      if (risk >= 8 || urgencyCount >= 4) return "Critical";
+      if (risk >= 6 || sentimentScore < -60) return "High";
+      if (risk >= 4 || urgencyCount >= 1) return "Medium";
+      return "Low";
+    }
+
+    function getUrgencyReason(urgency, riskMatches, urgencyMatches, sentimentScore) {
+      if (urgency === "Critical") return "Potential crisis indicators detected";
+      if (urgency === "High") return "Negative tone or high-risk signals require attention";
+      if (urgency === "Medium") return "Some risk signals are present";
+      if (sentimentScore > 20) return "Positive or low-risk mention";
+      return "Limited risk indicators";
+    }
+
+    function renderResults(d) {
+      const sentColor = d.sentimentScore > 20 ? "var(--green)" : d.sentimentScore < -20 ? "var(--red)" : "var(--amber)";
+      const sentEl = document.getElementById("mSent");
+
+      sentEl.textContent = d.sentiment;
+      sentEl.style.color = sentColor;
+
+      document.getElementById("mSentSub").textContent = "Score: " + (d.sentimentScore > 0 ? "+" : "") + Math.round(d.sentimentScore);
+
+      const sentPct = ((d.sentimentScore + 100) / 2).toFixed(0);
+      const sentGauge = document.getElementById("sentGauge");
+      sentGauge.style.width = sentPct + "%";
+      sentGauge.style.background = sentColor;
+
+      const risk = Math.round(d.reputationRisk);
+      const riskColor = risk >= 7 ? "var(--red)" : risk >= 4 ? "var(--amber)" : "var(--green)";
+      const riskEl = document.getElementById("mRisk");
+
+      riskEl.textContent = risk + " / 10";
+      riskEl.style.color = riskColor;
+
+      document.getElementById("mRiskSub").textContent = risk >= 7 ? "High exposure" : risk >= 4 ? "Moderate" : "Low exposure";
+
+      const riskGauge = document.getElementById("riskGauge");
+      riskGauge.style.width = (risk * 10) + "%";
+      riskGauge.style.background = riskColor;
+
+      const urgColors = { Low: "var(--green)", Medium: "var(--amber)", High: "var(--red)", Critical: "var(--red)" };
+      const urgEl = document.getElementById("mUrg");
+
+      urgEl.textContent = d.urgency;
+      urgEl.style.color = urgColors[d.urgency] || "var(--text)";
+      document.getElementById("mUrgSub").textContent = d.urgencyReason;
+
+      const tagRow = document.getElementById("tagRow");
+      tagRow.innerHTML = "";
+
+      const seenSignals = new Set();
+      (d.signals || []).forEach((s) => {
+        if (seenSignals.has(s.label)) return;
+        seenSignals.add(s.label);
+        const t = document.createElement("span");
+        t.className = "tag " + (s.type === "positive" ? "tpos" : s.type === "negative" ? "tneg" : "tneu");
+        t.textContent = s.label;
+        tagRow.appendChild(t);
+      });
+
+      document.getElementById("sumText").textContent = d.summary;
+      document.getElementById("draftText").textContent = d.draftResponse;
+
+      const el = document.getElementById("resultsEl");
+      el.style.display = "flex";
+    }
+
+    function detectThemes(text) {
+      return themeRules
+        .map(rule => {
+          const hits = rule.keywords.filter(keyword => text.includes(keyword.toLowerCase()));
+          return { ...rule, hits, score: hits.length };
+        })
+        .filter(rule => rule.score > 0)
+        .sort((a, b) => b.score - a.score);
+    }
+
+    function extractMostRelevantSentence(sentences, keywords) {
+      if (!sentences.length || !keywords.length) return sentences[0] || "";
+      let best = "";
+      let bestScore = 0;
+
+      sentences.forEach(sentence => {
+        const lowerSentence = sentence.toLowerCase();
+        let score = 0;
+        keywords.forEach(keyword => {
+          if (lowerSentence.includes(keyword.toLowerCase())) score += 1;
+        });
+        if (score > bestScore) {
+          bestScore = score;
+          best = sentence;
+        }
+      });
+
+      return best || sentences[0] || "";
+    }
+
+    function trimSentence(sentence) {
+      if (!sentence) return "";
+      const clean = sentence.replace(/\s+/g, " ").trim();
+      return clean.length > 220 ? clean.slice(0, 217) + "..." : clean;
+    }
+
+    function uniqueMatches(text, terms) {
+      const found = [];
+      for (const term of terms) {
+        if (text.includes(term.toLowerCase()) && !found.includes(term)) {
+          found.push(term);
+        }
+      }
+      return found;
+    }
+
+    function containsAny(text, terms) {
+      return terms.some(term => text.includes(term.toLowerCase()));
+    }
+
+    function formatList(items) {
+      if (!items.length) return "";
+      if (items.length === 1) return titleCase(items[0]);
+      if (items.length === 2) return `${titleCase(items[0])} and ${titleCase(items[1])}`;
+      return items.slice(0, -1).map(titleCase).join(", ") + ", and " + titleCase(items[items.length - 1]);
+    }
+
+    function titleCase(str) {
+      return str.replace(/\w\S*/g, txt => txt.charAt(0).toUpperCase() + txt.slice(1).toLowerCase());
+    }
+
+    function clamp(num, min, max) {
+      return Math.min(Math.max(num, min), max);
+    }
+
+    function setLoading(on) {
+      document.getElementById("loadEl").style.display = on ? "flex" : "none";
+      document.getElementById("runBtn").disabled = on;
+    }
+
+    function showErr(msg) {
+      const el = document.getElementById("errEl");
+      el.textContent = msg;
+      el.style.display = "block";
+    }
+
+    function hideErr() {
+      document.getElementById("errEl").style.display = "none";
+    }
+  </script>
+</body>
+</html>
