@@ -1,1437 +1,329 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SIGNAL — PR Intelligence Platform</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-<style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-  :root {
-    --bg: #0A0A0B;
-    --bg2: #111113;
-    --bg3: #18181C;
-    --bg4: #1F1F25;
-    --border: rgba(255,255,255,0.07);
-    --border2: rgba(255,255,255,0.12);
-    --text: #F0EFE8;
-    --text2: #9090A0;
-    --text3: #606070;
-    --accent: #D4FF5C;
-    --accent2: #A8CC3C;
-    --red: #FF4444;
-    --amber: #FFB84D;
-    --green: #4DFF9E;
-    --blue: #5BA3FF;
-    --purple: #A78BFA;
-    --serif: 'DM Serif Display', serif;
-    --sans: 'Instrument Sans', sans-serif;
-    --mono: 'DM Mono', monospace;
-  }
-
-  html { scroll-behavior: smooth; }
-
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--sans);
-    font-size: 14px;
-    line-height: 1.6;
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
-
-  /* Noise texture overlay */
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
-    pointer-events: none;
-    z-index: 0;
-    opacity: 0.6;
-  }
-
-  /* ---- LAYOUT ---- */
-  .app { position: relative; z-index: 1; display: grid; grid-template-columns: 280px 1fr; min-height: 100vh; }
-
-  /* ---- SIDEBAR ---- */
-  .sidebar {
-    border-right: 1px solid var(--border);
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    position: sticky;
-    top: 0;
-    height: 100vh;
-    overflow-y: auto;
-  }
-
-  .logo-area {
-    padding: 28px 24px 20px;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .logo {
-    font-family: var(--serif);
-    font-size: 22px;
-    color: var(--accent);
-    letter-spacing: -0.5px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .logo-dot {
-    width: 7px; height: 7px;
-    border-radius: 50%;
-    background: var(--accent);
-    animation: blink 2s ease-in-out infinite;
-  }
-
-  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
-
-  .logo-sub {
-    font-size: 10px;
-    font-family: var(--mono);
-    color: var(--text3);
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    margin-top: 3px;
-  }
-
-  .nav-section { padding: 20px 16px 8px; }
-
-  .nav-label {
-    font-size: 9px;
-    font-family: var(--mono);
-    color: var(--text3);
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    padding: 0 8px;
-    margin-bottom: 6px;
-  }
-
-  .nav-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 9px 10px;
-    border-radius: 8px;
-    cursor: pointer;
-    color: var(--text2);
-    font-size: 13px;
-    transition: all 0.15s;
-    border: 1px solid transparent;
-  }
-
-  .nav-item:hover { background: var(--bg3); color: var(--text); }
-  .nav-item.active { background: var(--bg3); color: var(--text); border-color: var(--border); }
-
-  .nav-icon { width: 16px; height: 16px; opacity: 0.7; flex-shrink: 0; }
-  .nav-item.active .nav-icon { opacity: 1; }
-
-  .nav-badge {
-    margin-left: auto;
-    font-size: 10px;
-    font-family: var(--mono);
-    background: var(--accent);
-    color: #0A0A0B;
-    padding: 1px 6px;
-    border-radius: 10px;
-    font-weight: 500;
-  }
-
-  .sidebar-footer {
-    margin-top: auto;
-    padding: 16px;
-    border-top: 1px solid var(--border);
-  }
-
-  .brand-selector {
-    width: 100%;
-    background: var(--bg3);
-    border: 1px solid var(--border);
-    color: var(--text);
-    font-family: var(--sans);
-    font-size: 12px;
-    padding: 8px 12px;
-    border-radius: 8px;
-    cursor: pointer;
-    outline: none;
-    margin-bottom: 8px;
-  }
-
-  .brand-selector:hover { border-color: var(--border2); }
-
-  .status-bar {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 11px;
-    font-family: var(--mono);
-    color: var(--text3);
-  }
-
-  .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: blink 1.5s infinite; }
-
-  /* ---- MAIN ---- */
-  .main { display: flex; flex-direction: column; min-height: 100vh; }
-
-  /* ---- TOP BAR ---- */
-  .topbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 20px 32px;
-    border-bottom: 1px solid var(--border);
-    background: rgba(10,10,11,0.8);
-    backdrop-filter: blur(8px);
-    position: sticky;
-    top: 0;
-    z-index: 10;
-  }
-
-  .page-title {
-    font-family: var(--serif);
-    font-size: 20px;
-    color: var(--text);
-  }
-
-  .topbar-actions { display: flex; align-items: center; gap: 10px; }
-
-  .btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 16px;
-    border-radius: 8px;
-    font-size: 12px;
-    font-family: var(--sans);
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.15s;
-    border: 1px solid transparent;
-    letter-spacing: 0.01em;
-  }
-
-  .btn-ghost {
-    background: transparent;
-    border-color: var(--border2);
-    color: var(--text2);
-  }
-
-  .btn-ghost:hover { background: var(--bg3); color: var(--text); }
-
-  .btn-primary {
-    background: var(--accent);
-    color: #0A0A0B;
-    border-color: var(--accent);
-    font-weight: 600;
-  }
-
-  .btn-primary:hover { background: var(--accent2); }
-  .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
-
-  .btn-danger {
-    background: rgba(255,68,68,0.1);
-    color: var(--red);
-    border-color: rgba(255,68,68,0.25);
-  }
-
-  /* ---- CONTENT AREA ---- */
-  .content { padding: 32px; flex: 1; }
-
-  /* ---- HERO INPUT SECTION ---- */
-  .hero-section {
-    margin-bottom: 32px;
-    animation: fadeUp 0.4s ease both;
-  }
-
-  @keyframes fadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
-
-  .hero-label {
-    font-family: var(--mono);
-    font-size: 10px;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--text3);
-    margin-bottom: 10px;
-  }
-
-  .input-wrapper {
-    position: relative;
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    overflow: hidden;
-    transition: border-color 0.2s;
-  }
-
-  .input-wrapper:focus-within { border-color: var(--border2); }
-
-  .input-toolbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 10px 16px;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .input-meta {
-    font-size: 11px;
-    font-family: var(--mono);
-    color: var(--text3);
-  }
-
-  .sample-pills { display: flex; gap: 6px; }
-
-  .pill {
-    font-size: 10px;
-    font-family: var(--mono);
-    padding: 3px 10px;
-    border-radius: 20px;
-    background: var(--bg3);
-    border: 1px solid var(--border);
-    color: var(--text2);
-    cursor: pointer;
-    transition: all 0.15s;
-    white-space: nowrap;
-  }
-
-  .pill:hover { border-color: var(--accent); color: var(--accent); }
-
-  textarea {
-    width: 100%;
-    min-height: 140px;
-    background: transparent;
-    border: none;
-    color: var(--text);
-    font-family: var(--sans);
-    font-size: 14px;
-    line-height: 1.7;
-    padding: 16px;
-    resize: vertical;
-    outline: none;
-  }
-
-  textarea::placeholder { color: var(--text3); }
-
-  .input-bottom {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 10px 16px;
-    border-top: 1px solid var(--border);
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-
-  .char-count { font-size: 11px; font-family: var(--mono); color: var(--text3); }
-
-  /* ---- LOADING ---- */
-  .loading-state {
-    display: none;
-    padding: 40px 0;
-    text-align: center;
-    animation: fadeUp 0.3s ease both;
-  }
-
-  .loading-state.active { display: block; }
-
-  .loading-spinner {
-    width: 40px; height: 40px;
-    border: 2px solid var(--border);
-    border-top-color: var(--accent);
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-    margin: 0 auto 16px;
-  }
-
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  .loading-steps { display: flex; flex-direction: column; gap: 6px; align-items: center; }
-  .loading-step { font-size: 12px; font-family: var(--mono); color: var(--text3); transition: color 0.3s; }
-  .loading-step.active { color: var(--accent); }
-
-  /* ---- RESULTS ---- */
-  .results-section {
-    display: none;
-    animation: fadeUp 0.5s ease both;
-  }
-
-  .results-section.visible { display: block; }
-
-  /* ---- METRICS ROW ---- */
-  .metrics-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 12px;
-    margin-bottom: 24px;
-  }
-
-  .metric-card {
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 18px;
-    position: relative;
-    overflow: hidden;
-    transition: border-color 0.2s;
-  }
-
-  .metric-card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 2px;
-    background: var(--accent-color, var(--border));
-    opacity: 0.8;
-  }
-
-  .metric-card:hover { border-color: var(--border2); }
-
-  .metric-label {
-    font-size: 10px;
-    font-family: var(--mono);
-    color: var(--text3);
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    margin-bottom: 10px;
-  }
-
-  .metric-value {
-    font-family: var(--serif);
-    font-size: 28px;
-    color: var(--accent-color, var(--text));
-    line-height: 1;
-    margin-bottom: 4px;
-  }
-
-  .metric-sub { font-size: 11px; color: var(--text3); }
-
-  /* Score bar */
-  .score-bar {
-    height: 3px;
-    background: var(--bg4);
-    border-radius: 2px;
-    margin-top: 10px;
-    overflow: hidden;
-  }
-
-  .score-fill {
-    height: 100%;
-    border-radius: 2px;
-    background: var(--accent-color, var(--accent));
-    transition: width 1s ease;
-  }
-
-  /* ---- TWO COL LAYOUT ---- */
-  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
-  .one-col { margin-bottom: 16px; }
-
-  /* ---- CARDS ---- */
-  .card {
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    overflow: hidden;
-  }
-
-  .card-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 14px 18px;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .card-title {
-    font-size: 11px;
-    font-family: var(--mono);
-    color: var(--text3);
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .card-body { padding: 18px; }
-
-  /* ---- SENTIMENT METER ---- */
-  .sentiment-meter {
-    position: relative;
-    height: 8px;
-    background: linear-gradient(to right, #FF4444, #FFB84D 50%, #4DFF9E);
-    border-radius: 4px;
-    margin: 12px 0;
-  }
-
-  .sentiment-needle {
-    position: absolute;
-    top: 50%;
-    transform: translate(-50%, -50%);
-    width: 14px; height: 14px;
-    background: white;
-    border-radius: 50%;
-    box-shadow: 0 0 0 3px var(--bg2), 0 0 0 5px white;
-    transition: left 1s cubic-bezier(0.34, 1.56, 0.64, 1);
-  }
-
-  .meter-labels {
-    display: flex;
-    justify-content: space-between;
-    font-size: 10px;
-    font-family: var(--mono);
-    color: var(--text3);
-    margin-top: 6px;
-  }
-
-  /* ---- SIGNALS / TAGS ---- */
-  .tags-wrap { display: flex; flex-wrap: wrap; gap: 6px; }
-
-  .tag {
-    font-size: 11px;
-    font-family: var(--mono);
-    padding: 4px 12px;
-    border-radius: 20px;
-    border: 1px solid;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-  }
-
-  .tag::before { content: ''; width: 5px; height: 5px; border-radius: 50%; }
-  .tag-pos { background: rgba(77,255,158,0.08); color: #4DFF9E; border-color: rgba(77,255,158,0.25); }
-  .tag-pos::before { background: #4DFF9E; }
-  .tag-neg { background: rgba(255,68,68,0.08); color: #FF6B6B; border-color: rgba(255,68,68,0.25); }
-  .tag-neg::before { background: #FF4444; }
-  .tag-neu { background: rgba(255,255,255,0.04); color: var(--text2); border-color: var(--border2); }
-  .tag-neu::before { background: var(--text3); }
-
-  /* ---- RISK GAUGE ---- */
-  .risk-gauge-wrap { text-align: center; padding: 10px 0; }
-
-  .risk-ring {
-    position: relative;
-    width: 110px;
-    height: 110px;
-    margin: 0 auto 12px;
-  }
-
-  .risk-ring svg { transform: rotate(-90deg); }
-
-  .risk-number {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .risk-num-val { font-family: var(--serif); font-size: 30px; line-height: 1; }
-  .risk-num-max { font-size: 11px; font-family: var(--mono); color: var(--text3); }
-
-  /* ---- URGENCY BADGE ---- */
-  .urgency-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 14px;
-    border-radius: 6px;
-    font-size: 12px;
-    font-family: var(--mono);
-    font-weight: 500;
-    border: 1px solid;
-  }
-
-  .urgency-pulse { width: 7px; height: 7px; border-radius: 50%; animation: blink 1s infinite; }
-
-  .urgency-critical { background: rgba(255,68,68,0.1); color: var(--red); border-color: rgba(255,68,68,0.3); }
-  .urgency-high { background: rgba(255,184,77,0.1); color: var(--amber); border-color: rgba(255,184,77,0.3); }
-  .urgency-medium { background: rgba(91,163,255,0.1); color: var(--blue); border-color: rgba(91,163,255,0.3); }
-  .urgency-low { background: rgba(77,255,158,0.1); color: var(--green); border-color: rgba(77,255,158,0.3); }
-
-  /* ---- DRAFT RESPONSE ---- */
-  .draft-area {
-    background: var(--bg3);
-    border-radius: 8px;
-    padding: 18px;
-    font-size: 14px;
-    line-height: 1.8;
-    color: var(--text);
-    position: relative;
-    min-height: 80px;
-  }
-
-  .draft-cursor {
-    display: inline-block;
-    width: 2px; height: 16px;
-    background: var(--accent);
-    margin-left: 2px;
-    vertical-align: text-bottom;
-    animation: blink 0.8s step-end infinite;
-  }
-
-  .draft-actions {
-    display: flex;
-    gap: 8px;
-    margin-top: 12px;
-    flex-wrap: wrap;
-  }
-
-  /* ---- RECOMMENDATION ---- */
-  .rec-list { display: flex; flex-direction: column; gap: 10px; }
-
-  .rec-item {
-    display: flex;
-    gap: 12px;
-    padding: 12px;
-    background: var(--bg3);
-    border-radius: 8px;
-    border: 1px solid transparent;
-    transition: border-color 0.2s;
-  }
-
-  .rec-item:hover { border-color: var(--border); }
-
-  .rec-num {
-    width: 22px; height: 22px;
-    border-radius: 50%;
-    background: var(--bg4);
-    border: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 10px;
-    font-family: var(--mono);
-    color: var(--text3);
-    flex-shrink: 0;
-    margin-top: 1px;
-  }
-
-  .rec-content { flex: 1; }
-  .rec-title { font-size: 13px; font-weight: 500; color: var(--text); margin-bottom: 2px; }
-  .rec-desc { font-size: 12px; color: var(--text2); line-height: 1.5; }
-
-  /* ---- TIMELINE ---- */
-  .timeline { display: flex; flex-direction: column; gap: 0; }
-
-  .timeline-item {
-    display: flex;
-    gap: 14px;
-    padding-bottom: 18px;
-    position: relative;
-  }
-
-  .timeline-item:last-child { padding-bottom: 0; }
-
-  .timeline-line {
-    position: absolute;
-    left: 15px; top: 28px;
-    bottom: 0;
-    width: 1px;
-    background: var(--border);
-  }
-
-  .timeline-item:last-child .timeline-line { display: none; }
-
-  .timeline-dot {
-    width: 30px; height: 30px;
-    border-radius: 50%;
-    background: var(--bg3);
-    border: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 12px;
-    flex-shrink: 0;
-    z-index: 1;
-  }
-
-  .timeline-body { flex: 1; padding-top: 4px; }
-  .timeline-title { font-size: 13px; font-weight: 500; margin-bottom: 2px; }
-  .timeline-desc { font-size: 12px; color: var(--text2); }
-  .timeline-time { font-size: 10px; font-family: var(--mono); color: var(--text3); margin-top: 4px; }
-
-  /* ---- HISTORY ---- */
-  .history-list { display: flex; flex-direction: column; gap: 0; }
-
-  .history-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 10px 16px;
-    border-bottom: 1px solid var(--border);
-    cursor: pointer;
-    transition: background 0.15s;
-  }
-
-  .history-item:last-child { border-bottom: none; }
-  .history-item:hover { background: var(--bg3); }
-
-  .history-text { font-size: 12px; color: var(--text2); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-right: 12px; }
-  .history-score { font-size: 11px; font-family: var(--mono); }
-  .history-time { font-size: 10px; font-family: var(--mono); color: var(--text3); margin-left: 8px; }
-
-  /* ---- SECTION DIVIDER ---- */
-  .section-divider {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin: 28px 0 20px;
-  }
-
-  .section-divider-label {
-    font-size: 10px;
-    font-family: var(--mono);
-    color: var(--text3);
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    white-space: nowrap;
-  }
-
-  .section-divider-line { flex: 1; height: 1px; background: var(--border); }
-
-  /* ---- ERROR ---- */
-  .error-banner {
-    display: none;
-    background: rgba(255,68,68,0.08);
-    border: 1px solid rgba(255,68,68,0.2);
-    border-radius: 8px;
-    padding: 12px 16px;
-    font-size: 13px;
-    color: #FF7070;
-    margin-bottom: 20px;
-    font-family: var(--mono);
-  }
-
-  .error-banner.visible { display: flex; align-items: center; gap: 10px; }
-
-  /* ---- COPY TOAST ---- */
-  .toast {
-    position: fixed;
-    bottom: 24px; right: 24px;
-    background: var(--accent);
-    color: #0A0A0B;
-    font-size: 12px;
-    font-family: var(--mono);
-    font-weight: 500;
-    padding: 10px 18px;
-    border-radius: 8px;
-    opacity: 0;
-    transform: translateY(8px);
-    transition: all 0.2s;
-    z-index: 100;
-    pointer-events: none;
-  }
-
-  .toast.show { opacity: 1; transform: translateY(0); }
-
-  /* ---- EMPTY STATE ---- */
-  .empty-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 60px 20px;
-    text-align: center;
-    color: var(--text3);
-  }
-
-  .empty-icon { font-size: 40px; margin-bottom: 16px; opacity: 0.5; }
-  .empty-title { font-family: var(--serif); font-size: 22px; color: var(--text2); margin-bottom: 8px; }
-  .empty-desc { font-size: 13px; max-width: 320px; line-height: 1.6; }
-
-  /* ---- SCROLLBAR ---- */
-  ::-webkit-scrollbar { width: 6px; height: 6px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 3px; }
-  ::-webkit-scrollbar-thumb:hover { background: var(--border2); }
-
-  /* ---- GLOW EFFECT ---- */
-  .glow-accent { text-shadow: 0 0 20px rgba(212,255,92,0.4); }
-
-  /* ---- RESPONSIVE ---- */
-  @media (max-width: 900px) {
-    .app { grid-template-columns: 1fr; }
-    .sidebar { position: static; height: auto; flex-direction: row; overflow-x: auto; border-right: none; border-bottom: 1px solid var(--border); }
-    .metrics-grid { grid-template-columns: repeat(2, 1fr); }
-    .two-col { grid-template-columns: 1fr; }
-  }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PR Intelligence Engine</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f9f9f7;
+      color: #1a1a1a;
+      min-height: 100vh;
+      padding: 2rem 1rem;
+    }
+
+    .container {
+      max-width: 740px;
+      margin: 0 auto;
+    }
+
+    header { margin-bottom: 2rem; }
+    header h1 { font-size: 22px; font-weight: 500; margin-bottom: 4px; }
+    header p { font-size: 14px; color: #666; }
+
+    .card {
+      background: #fff;
+      border: 1px solid #e8e8e5;
+      border-radius: 12px;
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 140px;
+      resize: vertical;
+      font-size: 13px;
+      padding: 10px 12px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      line-height: 1.6;
+      font-family: inherit;
+      background: #fafafa;
+      color: #1a1a1a;
+      display: block;
+    }
+    textarea:focus { outline: none; border-color: #aaa; background: #fff; }
+
+    .controls {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-top: 10px;
+      flex-wrap: wrap;
+      justify-content: space-between;
+    }
+
+    .controls-left { display: flex; gap: 10px; align-items: center; }
+
+    select {
+      font-size: 13px;
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      background: #fff;
+      color: #1a1a1a;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .btn-analyze {
+      font-size: 13px;
+      font-weight: 500;
+      padding: 8px 20px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      background: #1a1a1a;
+      color: #fff;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-analyze:hover { background: #333; }
+    .btn-analyze:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .sample-link {
+      font-size: 12px;
+      color: #888;
+      background: none;
+      border: none;
+      cursor: pointer;
+      text-decoration: underline;
+      padding: 0;
+      font-family: inherit;
+    }
+    .sample-link:hover { color: #444; }
+
+    .loading {
+      display: none;
+      gap: 6px;
+      align-items: center;
+      font-size: 13px;
+      color: #888;
+      padding: 0.75rem 0;
+    }
+    .dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: #bbb;
+      animation: pulse 1.2s infinite;
+    }
+    .dot:nth-child(2) { animation-delay: 0.2s; }
+    .dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes pulse { 0%,80%,100%{opacity:0.3} 40%{opacity:1} }
+
+    .err { font-size: 13px; color: #c0392b; padding: 6px 0; display: none; }
+
+    #resultsEl { display: none; }
+
+    .section-label {
+      font-size: 11px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #888;
+      margin-bottom: 10px;
+    }
+
+    .metric-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 10px;
+      margin-bottom: 1.25rem;
+    }
+
+    .metric {
+      background: #f7f7f5;
+      border-radius: 8px;
+      padding: 12px 14px;
+    }
+    .metric .lbl {
+      font-size: 11px;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 4px;
+    }
+    .metric .val { font-size: 22px; font-weight: 500; }
+    .metric .sub { font-size: 12px; margin-top: 2px; color: #888; }
+
+    .result-card {
+      background: #fff;
+      border: 1px solid #e8e8e5;
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin-bottom: 1rem;
+    }
+
+    .tag-row { display: flex; flex-wrap: wrap; gap: 6px; }
+    .tag { font-size: 12px; padding: 4px 11px; border-radius: 20px; }
+    .tpos { background: #eaf3de; color: #2d5a0e; }
+    .tneg { background: #fceaea; color: #7a1f1f; }
+    .tneu { background: #f1f1ee; color: #555; }
+
+    .body-text { font-size: 13px; line-height: 1.75; color: #333; }
+    .draft-text { font-size: 13px; line-height: 1.75; color: #333; white-space: pre-wrap; }
+
+    hr { border: none; border-top: 1px solid #eee; margin: 1.5rem 0; }
+  </style>
 </head>
 <body>
+  <div class="container">
+    <header>
+      <h1>PR intelligence engine</h1>
+      <p>Paste a news article or brand mention — get sentiment analysis, risk scoring, and a drafted response</p>
+    </header>
 
-<div class="app">
-  <!-- SIDEBAR -->
-  <aside class="sidebar">
-    <div class="logo-area">
-      <div class="logo">
-        <div class="logo-dot"></div>
-        SIGNAL
-      </div>
-      <div class="logo-sub">PR Intelligence Platform</div>
-    </div>
+    <div class="card">
+      <textarea id="txt" placeholder="Paste a news article, tweet, review, or press mention here..."></textarea>
 
-    <div class="nav-section">
-      <div class="nav-label">Workspace</div>
-      <div class="nav-item active" onclick="switchView('analyze')">
-        <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/></svg>
-        Analyze
+      <div class="controls">
+        <div class="controls-left">
+          <select id="industry">
+            <option value="a brand">Select industry</option>
+            <option value="a technology company">Technology</option>
+            <option value="a healthcare or pharmaceutical company">Healthcare / pharma</option>
+            <option value="a financial services or banking institution">Financial services</option>
+            <option value="a consumer goods or retail brand">Consumer goods / retail</option>
+            <option value="an energy or utilities company">Energy / utilities</option>
+            <option value="a food and beverage brand">Food & beverage</option>
+            <option value="a media or entertainment company">Media / entertainment</option>
+            <option value="a government or public sector organization">Government / public sector</option>
+            <option value="a nonprofit or NGO">Nonprofit / NGO</option>
+          </select>
+          <button class="btn-analyze" id="runBtn">Analyze</button>
+        </div>
+        <button class="sample-link" id="sampleBtn">Load sample article</button>
       </div>
-      <div class="nav-item" onclick="switchView('history')">
-        <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-        History
-        <span class="nav-badge" id="historyBadge" style="display:none">0</span>
-      </div>
-    </div>
 
-    <div class="nav-section">
-      <div class="nav-label">Samples</div>
-      <div class="nav-item" onclick="loadSample('crisis')">
-        <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/></svg>
-        Crisis — product recall
-      </div>
-      <div class="nav-item" onclick="loadSample('positive')">
-        <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.562.562 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"/></svg>
-        Positive — award win
-      </div>
-      <div class="nav-item" onclick="loadSample('mixed')">
-        <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5"/></svg>
-        Mixed — earnings report
+      <div id="errEl" class="err"></div>
+      <div id="loadEl" class="loading">
+        <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+        <span>Analyzing...</span>
       </div>
     </div>
 
-    <div class="sidebar-footer">
-      <select class="brand-selector" id="brandSelect">
-        <option value="our client">Generic brand</option>
-        <option value="Edelman">Edelman</option>
-        <option value="a major tech company">Tech company</option>
-        <option value="a major airline">Major airline</option>
-        <option value="a pharmaceutical company">Pharma company</option>
-        <option value="a consumer goods brand">Consumer goods</option>
-        <option value="a financial institution">Financial institution</option>
-      </select>
-      <div class="status-bar">
-        <div class="status-dot"></div>
-        <span>AI engine online</span>
+    <div id="resultsEl">
+      <div class="section-label">Sentiment & risk</div>
+      <div class="metric-row">
+        <div class="metric">
+          <div class="lbl">Overall sentiment</div>
+          <div class="val" id="mSent"></div>
+          <div class="sub" id="mSentSub"></div>
+        </div>
+        <div class="metric">
+          <div class="lbl">Reputation risk</div>
+          <div class="val" id="mRisk"></div>
+          <div class="sub" id="mRiskSub"></div>
+        </div>
+        <div class="metric">
+          <div class="lbl">Urgency</div>
+          <div class="val" id="mUrg"></div>
+          <div class="sub" id="mUrgSub"></div>
+        </div>
       </div>
+
+      <div class="section-label">Key signals</div>
+      <div class="result-card"><div class="tag-row" id="tagRow"></div></div>
+
+      <div class="section-label">Summary</div>
+      <div class="result-card"><p id="sumText" class="body-text"></p></div>
+
+      <div class="section-label">Drafted comms response</div>
+      <div class="result-card"><p id="draftText" class="draft-text"></p></div>
     </div>
-  </aside>
+  </div>
 
-  <!-- MAIN -->
-  <main class="main">
-    <div class="topbar">
-      <div class="page-title" id="pageTitle">Media analysis</div>
-      <div class="topbar-actions">
-        <button class="btn btn-ghost" onclick="clearAll()">Clear</button>
-        <button class="btn btn-primary" id="analyzeBtn" onclick="runAnalysis()">
-          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/></svg>
-          Run analysis
-        </button>
-      </div>
-    </div>
+  <script>
+    // Point this to wherever your FastAPI server is running
+    const API_BASE = 'http://localhost:8000';
 
-    <!-- ANALYZE VIEW -->
-    <div id="viewAnalyze" class="content">
+    const SAMPLE = `A whistleblower has come forward with documents suggesting that TechVision Corp knowingly shipped faulty battery components in its popular SmartHome Hub devices, despite internal reports flagging safety risks six months ago. The leak, obtained by Reuters, includes internal emails in which senior engineers warned management about potential overheating issues that could pose fire hazards. Three house fires in California and Texas have been linked to the device, though TechVision Corp has not yet confirmed or denied the reports. Consumer advocacy groups are calling for an immediate recall. Shares fell 8% in pre-market trading following the news.`;
 
-      <!-- ERROR -->
-      <div class="error-banner" id="errorBanner">
-        <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/></svg>
-        <span id="errorText">Analysis failed. Please try again.</span>
-      </div>
-
-      <!-- INPUT -->
-      <div class="hero-section">
-        <div class="hero-label">// paste media mention or article</div>
-        <div class="input-wrapper">
-          <div class="input-toolbar">
-            <span class="input-meta">plain text · article · tweet · review · press release</span>
-            <div class="sample-pills">
-              <span class="pill" onclick="loadSample('crisis')">Crisis</span>
-              <span class="pill" onclick="loadSample('positive')">Positive</span>
-              <span class="pill" onclick="loadSample('mixed')">Mixed</span>
-            </div>
-          </div>
-          <textarea id="inputText" placeholder="Paste a news article, social media post, press mention, or customer review to analyze its sentiment, reputation risk, and urgency — then get a drafted communications response..."></textarea>
-          <div class="input-bottom">
-            <span class="char-count"><span id="charCount">0</span> characters</span>
-            <button class="btn btn-primary" id="analyzeBtnBottom" onclick="runAnalysis()">
-              Analyze →
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- LOADING -->
-      <div class="loading-state" id="loadingState">
-        <div class="loading-spinner"></div>
-        <div class="loading-steps">
-          <div class="loading-step" id="step1">Processing article content...</div>
-          <div class="loading-step" id="step2">Scoring sentiment signals...</div>
-          <div class="loading-step" id="step3">Assessing reputation risk...</div>
-          <div class="loading-step" id="step4">Drafting comms response...</div>
-        </div>
-      </div>
-
-      <!-- RESULTS -->
-      <div class="results-section" id="resultsSection">
-
-        <div class="section-divider">
-          <div class="section-divider-label">Analysis results</div>
-          <div class="section-divider-line"></div>
-          <span style="font-size:10px;font-family:var(--mono);color:var(--text3)" id="analysisTime"></span>
-        </div>
-
-        <!-- METRICS -->
-        <div class="metrics-grid">
-          <div class="metric-card" id="mcSentiment" style="--accent-color: var(--text)">
-            <div class="metric-label">Sentiment</div>
-            <div class="metric-value" id="mvSentiment">—</div>
-            <div class="metric-sub" id="msSentiment"></div>
-            <div class="score-bar"><div class="score-fill" id="sfSentiment" style="width:0%"></div></div>
-          </div>
-          <div class="metric-card" id="mcRisk" style="--accent-color: var(--text)">
-            <div class="metric-label">Reputation risk</div>
-            <div class="metric-value" id="mvRisk">—</div>
-            <div class="metric-sub" id="msRisk"></div>
-            <div class="score-bar"><div class="score-fill" id="sfRisk" style="width:0%"></div></div>
-          </div>
-          <div class="metric-card" id="mcUrgency" style="--accent-color: var(--text)">
-            <div class="metric-label">Response urgency</div>
-            <div class="metric-value" id="mvUrgency">—</div>
-            <div class="metric-sub" id="msUrgency"></div>
-            <div class="score-bar"><div class="score-fill" id="sfUrgency" style="width:0%"></div></div>
-          </div>
-          <div class="metric-card" style="--accent-color: var(--purple)">
-            <div class="metric-label">Signals detected</div>
-            <div class="metric-value" id="mvSignals" style="color:var(--purple)">—</div>
-            <div class="metric-sub" id="msSignals"></div>
-            <div class="score-bar"><div class="score-fill" id="sfSignals" style="width:0%;background:var(--purple)"></div></div>
-          </div>
-        </div>
-
-        <!-- ROW 2 -->
-        <div class="two-col">
-          <!-- Sentiment breakdown -->
-          <div class="card">
-            <div class="card-header">
-              <div class="card-title">
-                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z"/></svg>
-                Sentiment spectrum
-              </div>
-            </div>
-            <div class="card-body">
-              <div class="sentiment-meter">
-                <div class="sentiment-needle" id="sentimentNeedle" style="left:50%"></div>
-              </div>
-              <div class="meter-labels">
-                <span>Negative</span>
-                <span>Neutral</span>
-                <span>Positive</span>
-              </div>
-              <div style="margin-top:16px">
-                <div id="sentimentSummaryText" style="font-size:13px;color:var(--text2);line-height:1.6;"></div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Risk gauge + Urgency -->
-          <div class="card">
-            <div class="card-header">
-              <div class="card-title">
-                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/></svg>
-                Risk & urgency
-              </div>
-            </div>
-            <div class="card-body" style="display:flex;gap:20px;align-items:center;">
-              <div class="risk-gauge-wrap" style="flex-shrink:0">
-                <div class="risk-ring">
-                  <svg width="110" height="110" viewBox="0 0 110 110">
-                    <circle cx="55" cy="55" r="44" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="8"/>
-                    <circle id="riskArc" cx="55" cy="55" r="44" fill="none" stroke="#FF4444" stroke-width="8" stroke-dasharray="276.46" stroke-dashoffset="276.46" stroke-linecap="round" style="transition:stroke-dashoffset 1.2s cubic-bezier(0.34,1.1,0.64,1)"/>
-                  </svg>
-                  <div class="risk-number">
-                    <div class="risk-num-val" id="riskGaugeNum">0</div>
-                    <div class="risk-num-max">/10</div>
-                  </div>
-                </div>
-              </div>
-              <div style="flex:1">
-                <div style="margin-bottom:12px;">
-                  <div style="font-size:11px;font-family:var(--mono);color:var(--text3);margin-bottom:6px;letter-spacing:0.08em;text-transform:uppercase;">Response urgency</div>
-                  <div id="urgencyBadge" class="urgency-badge urgency-low" style="display:inline-flex">
-                    <div class="urgency-pulse" style="background:currentColor"></div>
-                    <span id="urgencyBadgeText">—</span>
-                  </div>
-                </div>
-                <div style="font-size:12px;color:var(--text2);line-height:1.6" id="urgencyReason"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- ROW 3: Signals + Summary -->
-        <div class="two-col">
-          <div class="card">
-            <div class="card-header">
-              <div class="card-title">
-                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L9.568 3z"/><path d="M6 6h.008v.008H6V6z"/></svg>
-                Key signals
-              </div>
-            </div>
-            <div class="card-body">
-              <div class="tags-wrap" id="tagsWrap"></div>
-            </div>
-          </div>
-
-          <div class="card">
-            <div class="card-header">
-              <div class="card-title">
-                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z"/></svg>
-                Article summary
-              </div>
-            </div>
-            <div class="card-body">
-              <p id="summaryText" style="font-size:13px;color:var(--text2);line-height:1.7;"></p>
-            </div>
-          </div>
-        </div>
-
-        <!-- DRAFT RESPONSE -->
-        <div class="one-col">
-          <div class="card">
-            <div class="card-header">
-              <div class="card-title">
-                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125"/></svg>
-                Drafted communications response
-              </div>
-              <div id="toneTag" class="tag tag-neu" style="font-size:10px;padding:2px 8px;"></div>
-            </div>
-            <div class="card-body">
-              <div class="draft-area" id="draftArea"></div>
-              <div class="draft-actions">
-                <button class="btn btn-ghost" onclick="copyDraft()">
-                  <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 01-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 011.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 00-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 01-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 00-3.375-3.375h-1.5a1.125 1.125 0 01-1.125-1.125v-1.5a3.375 3.375 0 00-3.375-3.375H9.75"/></svg>
-                  Copy response
-                </button>
-                <button class="btn btn-ghost" onclick="rewriteDraft('formal')">Rewrite formal ↗</button>
-                <button class="btn btn-ghost" onclick="rewriteDraft('empathetic')">Rewrite empathetic ↗</button>
-                <button class="btn btn-ghost" onclick="rewriteDraft('brief')">Rewrite brief ↗</button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- ROW: Recommendations + Action Timeline -->
-        <div class="two-col">
-          <div class="card">
-            <div class="card-header">
-              <div class="card-title">
-                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"/></svg>
-                Strategic recommendations
-              </div>
-            </div>
-            <div class="card-body">
-              <div class="rec-list" id="recList"></div>
-            </div>
-          </div>
-
-          <div class="card">
-            <div class="card-header">
-              <div class="card-title">
-                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 9v7.5"/></svg>
-                Action timeline
-              </div>
-            </div>
-            <div class="card-body">
-              <div class="timeline" id="timelineWrap"></div>
-            </div>
-          </div>
-        </div>
-
-      </div><!-- /results -->
-
-      <!-- EMPTY STATE -->
-      <div class="empty-state" id="emptyState">
-        <div class="empty-icon">◎</div>
-        <div class="empty-title">Ready to analyze</div>
-        <div class="empty-desc">Paste a news article, social post, or press mention above and run the AI analysis engine.</div>
-      </div>
-
-    </div><!-- /viewAnalyze -->
-
-    <!-- HISTORY VIEW -->
-    <div id="viewHistory" style="display:none" class="content">
-      <div class="section-divider">
-        <div class="section-divider-label">Analysis history</div>
-        <div class="section-divider-line"></div>
-      </div>
-      <div class="card">
-        <div id="historyList" class="history-list">
-          <div style="padding:30px;text-align:center;color:var(--text3);font-size:13px;font-family:var(--mono)">No analyses yet. Run your first analysis to see it here.</div>
-        </div>
-      </div>
-    </div>
-
-  </main>
-</div>
-
-<div class="toast" id="toast">Copied to clipboard</div>
-
-<script>
-const SAMPLES = {
-  crisis: `A whistleblower has come forward with internal documents suggesting that TechVision Corp knowingly shipped faulty battery components in its popular SmartHome Hub devices, despite internal safety reports flagging the risks six months ago. The leak, obtained by Reuters, includes emails in which senior engineers warned management about potential overheating issues that could pose serious fire hazards. Three house fires in California and Texas have been attributed to the device, though TechVision Corp has not yet confirmed or denied the allegations. Consumer advocacy groups are calling for an immediate product recall and federal investigation. Shares fell 8.4% in pre-market trading following the news, wiping approximately $2.3 billion from the company's market capitalization. A class action lawsuit is being prepared by the law firm Harris & Associates on behalf of affected homeowners.`,
-
-  positive: `Meridian Health has been awarded the prestigious Global Healthcare Innovation Prize for its groundbreaking AI-assisted diagnostics platform, which has improved early cancer detection rates by 34% across participating hospitals in Southeast Asia. The award, presented at the World Health Forum in Geneva, recognizes organizations making measurable impact in preventative care. CEO Dr. Sarah Lin was praised by the selection committee for her leadership in democratizing access to cutting-edge diagnostics in underserved communities. The announcement sent shares up 12% and prompted three major hospital networks in Europe to fast-track partnership discussions. Industry analysts have called the platform "a genuine step-change in how we approach preventative medicine."`,
-
-  mixed: `Apex Financial posted stronger-than-expected Q3 earnings today, with net profit rising 18% year-on-year to $4.2 billion, driven by record trading revenues in its commodities division. However, the results were overshadowed by an unexpected announcement that the bank is setting aside $900 million to cover potential regulatory fines stemming from a 2021 foreign exchange investigation by the SEC and FCA. CEO James Callahan acknowledged "compliance shortcomings in a prior period" but emphasized the bank's commitment to full cooperation. Analysts are divided: several raised their price targets citing operational strength, while others flagged that the regulatory liability may be larger than provisioned. The stock closed down 2.1% on the day despite the earnings beat.`
-};
-
-let analysisHistory = [];
-let currentDraft = '';
-let currentAnalysis = null;
-
-function switchView(view) {
-  document.getElementById('viewAnalyze').style.display = view === 'analyze' ? 'block' : 'none';
-  document.getElementById('viewHistory').style.display = view === 'history' ? 'block' : 'none';
-  document.getElementById('pageTitle').textContent = view === 'analyze' ? 'Media analysis' : 'Analysis history';
-  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-  event.currentTarget.classList.add('active');
-}
-
-function loadSample(type) {
-  document.getElementById('inputText').value = SAMPLES[type];
-  updateCharCount();
-  switchView('analyze');
-  document.querySelectorAll('.nav-item')[0].classList.add('active');
-}
-
-document.getElementById('inputText').addEventListener('input', updateCharCount);
-
-function updateCharCount() {
-  const len = document.getElementById('inputText').value.length;
-  document.getElementById('charCount').textContent = len.toLocaleString();
-}
-
-function clearAll() {
-  document.getElementById('inputText').value = '';
-  document.getElementById('charCount').textContent = '0';
-  document.getElementById('resultsSection').classList.remove('visible');
-  document.getElementById('emptyState').style.display = 'flex';
-  hideError();
-  currentAnalysis = null;
-}
-
-function showError(msg) {
-  const el = document.getElementById('errorBanner');
-  document.getElementById('errorText').textContent = msg;
-  el.classList.add('visible');
-  setTimeout(() => el.classList.remove('visible'), 6000);
-}
-
-function hideError() { document.getElementById('errorBanner').classList.remove('visible'); }
-
-function setLoading(on) {
-  const ls = document.getElementById('loadingState');
-  ls.classList.toggle('active', on);
-  document.getElementById('analyzeBtn').disabled = on;
-  document.getElementById('analyzeBtnBottom').disabled = on;
-  if (on) {
-    document.getElementById('resultsSection').classList.remove('visible');
-    document.getElementById('emptyState').style.display = 'none';
-    animateSteps();
-  }
-}
-
-function animateSteps() {
-  const steps = ['step1','step2','step3','step4'];
-  steps.forEach((s,i) => {
-    document.getElementById(s).className = 'loading-step';
-    setTimeout(() => document.getElementById(s).classList.add('active'), i * 900);
-  });
-}
-
-async function runAnalysis() {
-  const text = document.getElementById('inputText').value.trim();
-  if (!text) { showError('Please paste some content to analyze.'); return; }
-  const brand = document.getElementById('brandSelect').value;
-
-  hideError();
-  setLoading(true);
-
-  const prompt = `You are a senior PR strategist at a world-leading communications consultancy. Analyze the following media article or mention about "${brand}".
-
-Return ONLY a JSON object with this EXACT structure — no markdown, no preamble, no trailing text:
-{
-  "sentiment": "Positive" | "Neutral" | "Negative",
-  "sentimentScore": <integer -100 to 100>,
-  "sentimentExplanation": "<one sentence explaining the sentiment score>",
-  "reputationRisk": <integer 0-10>,
-  "riskExplanation": "<one sentence about the main risk factor>",
-  "urgency": "Low" | "Medium" | "High" | "Critical",
-  "urgencyReason": "<one sentence on why this urgency level>",
-  "tone": "Defensive" | "Neutral" | "Reassuring" | "Proactive" | "Empathetic",
-  "signals": [
-    { "label": "<2-3 word phrase>", "type": "positive" | "negative" | "neutral" }
-  ],
-  "summary": "<3 sentence factual summary of the article and its implications for the brand>",
-  "draftResponse": "<A professional 4-5 sentence spokesperson statement or press response. Match tone to urgency. First person as the brand.>",
-  "recommendations": [
-    { "title": "<action title>", "description": "<one sentence on what to do and why>" },
-    { "title": "<action title>", "description": "<one sentence>" },
-    { "title": "<action title>", "description": "<one sentence>" }
-  ],
-  "timeline": [
-    { "time": "0–2 hours", "action": "<immediate action>", "emoji": "🔴" },
-    { "time": "2–24 hours", "action": "<short term action>", "emoji": "🟡" },
-    { "time": "1–3 days", "action": "<medium term>", "emoji": "🔵" },
-    { "time": "1+ week", "action": "<long term>", "emoji": "⚪" }
-  ]
-}
-
-Article to analyze:
-${text}`;
-
-  try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1500,
-        messages: [{ role: 'user', content: prompt }]
-      })
+    document.getElementById('sampleBtn').addEventListener('click', function () {
+      document.getElementById('txt').value = SAMPLE;
+      document.getElementById('industry').value = 'a technology company';
     });
 
-    const data = await res.json();
-    if (data.error) throw new Error(data.error.message);
-    const raw = data.content.map(i => i.text || '').join('');
-    const clean = raw.replace(/```json|```/g, '').trim();
-    const parsed = JSON.parse(clean);
-    currentAnalysis = parsed;
-    renderResults(parsed, text);
-  } catch(e) {
-    showError('Analysis failed: ' + (e.message || 'Unknown error. Please try again.'));
-    document.getElementById('emptyState').style.display = 'flex';
-    console.error(e);
-  } finally {
-    setLoading(false);
-  }
-}
+    document.getElementById('runBtn').addEventListener('click', runAnalysis);
 
-function renderResults(d, originalText) {
-  const sentColor = d.sentimentScore > 20 ? 'var(--green)' : d.sentimentScore < -20 ? 'var(--red)' : 'var(--amber)';
-  const riskColor = d.reputationRisk >= 7 ? 'var(--red)' : d.reputationRisk >= 4 ? 'var(--amber)' : 'var(--green)';
-  const urgencyColors = { Low:'var(--green)', Medium:'var(--blue)', High:'var(--amber)', Critical:'var(--red)' };
-  const urgColor = urgencyColors[d.urgency] || 'var(--text)';
+    async function runAnalysis() {
+      var text = document.getElementById('txt').value.trim();
+      if (!text) { showErr('Please paste some text to analyze.'); return; }
+      var industry = document.getElementById('industry').value;
 
-  // Metrics
-  document.getElementById('mcSentiment').style.setProperty('--accent-color', sentColor);
-  document.getElementById('mvSentiment').textContent = d.sentiment;
-  document.getElementById('mvSentiment').style.color = sentColor;
-  document.getElementById('msSentiment').textContent = `Score: ${d.sentimentScore > 0 ? '+' : ''}${d.sentimentScore}`;
-  const sentPct = ((d.sentimentScore + 100) / 200 * 100).toFixed(0);
-  document.getElementById('sfSentiment').style.width = sentPct + '%';
-  document.getElementById('sfSentiment').style.background = sentColor;
+      setLoading(true);
+      hideErr();
+      document.getElementById('resultsEl').style.display = 'none';
 
-  document.getElementById('mcRisk').style.setProperty('--accent-color', riskColor);
-  document.getElementById('mvRisk').textContent = `${d.reputationRisk}/10`;
-  document.getElementById('mvRisk').style.color = riskColor;
-  document.getElementById('msRisk').textContent = d.riskExplanation ? d.riskExplanation.substring(0, 40) + '…' : '';
-  document.getElementById('sfRisk').style.width = (d.reputationRisk * 10) + '%';
-  document.getElementById('sfRisk').style.background = riskColor;
+      try {
+        var res = await fetch(API_BASE + '/analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: text, industry: industry })
+        });
 
-  document.getElementById('mcUrgency').style.setProperty('--accent-color', urgColor);
-  document.getElementById('mvUrgency').textContent = d.urgency;
-  document.getElementById('mvUrgency').style.color = urgColor;
-  document.getElementById('msUrgency').textContent = d.urgencyReason ? d.urgencyReason.substring(0, 40) + '…' : '';
-  const urgMap = { Low:25, Medium:50, High:75, Critical:100 };
-  document.getElementById('sfUrgency').style.width = (urgMap[d.urgency] || 50) + '%';
-  document.getElementById('sfUrgency').style.background = urgColor;
+        if (!res.ok) {
+          var errData = await res.json().catch(function () { return {}; });
+          throw new Error(errData.detail || 'Server error ' + res.status);
+        }
 
-  const sigCount = (d.signals || []).length;
-  document.getElementById('mvSignals').textContent = sigCount;
-  document.getElementById('msSignals').textContent = `${(d.signals||[]).filter(s=>s.type==='negative').length} negative · ${(d.signals||[]).filter(s=>s.type==='positive').length} positive`;
-  document.getElementById('sfSignals').style.width = Math.min(sigCount * 12, 100) + '%';
+        var d = await res.json();
+        renderResults(d);
+      } catch (e) {
+        showErr('Analysis failed: ' + e.message);
+      } finally {
+        setLoading(false);
+      }
+    }
 
-  // Sentiment meter
-  const needlePct = ((d.sentimentScore + 100) / 200 * 100).toFixed(1);
-  setTimeout(() => {
-    document.getElementById('sentimentNeedle').style.left = needlePct + '%';
-  }, 100);
-  document.getElementById('sentimentSummaryText').textContent = d.sentimentExplanation || '';
+    function renderResults(d) {
+      var sentColor = d.sentimentScore > 20 ? '#1D9E75' : d.sentimentScore < -20 ? '#c0392b' : '#d68910';
+      var sentEl = document.getElementById('mSent');
+      sentEl.textContent = d.sentiment;
+      sentEl.style.color = sentColor;
+      document.getElementById('mSentSub').textContent = 'Score: ' + (d.sentimentScore > 0 ? '+' : '') + Math.round(d.sentimentScore);
 
-  // Risk gauge
-  const riskPct = d.reputationRisk / 10;
-  const circum = 276.46;
-  const offset = circum - (riskPct * circum);
-  const riskArcColor = d.reputationRisk >= 7 ? '#FF4444' : d.reputationRisk >= 4 ? '#FFB84D' : '#4DFF9E';
-  document.getElementById('riskArc').style.stroke = riskArcColor;
-  setTimeout(() => {
-    document.getElementById('riskArc').style.strokeDashoffset = offset;
-    document.getElementById('riskGaugeNum').textContent = d.reputationRisk;
-    document.getElementById('riskGaugeNum').style.color = riskArcColor;
-  }, 200);
+      var risk = Math.round(d.reputationRisk);
+      var riskEl = document.getElementById('mRisk');
+      riskEl.textContent = risk + '/10';
+      riskEl.style.color = risk >= 7 ? '#c0392b' : risk >= 4 ? '#d68910' : '#1D9E75';
+      document.getElementById('mRiskSub').textContent = risk >= 7 ? 'High exposure' : risk >= 4 ? 'Moderate' : 'Low exposure';
 
-  // Urgency badge
-  const ub = document.getElementById('urgencyBadge');
-  ub.className = `urgency-badge urgency-${d.urgency.toLowerCase()}`;
-  document.getElementById('urgencyBadgeText').textContent = d.urgency;
-  document.getElementById('urgencyReason').textContent = d.urgencyReason || '';
+      var urgColors = { Low: '#1D9E75', Medium: '#d68910', High: '#c0392b', Critical: '#8e1111' };
+      var urgEl = document.getElementById('mUrg');
+      urgEl.textContent = d.urgency;
+      urgEl.style.color = urgColors[d.urgency] || 'inherit';
+      document.getElementById('mUrgSub').textContent = d.urgencyReason;
 
-  // Signals
-  const tw = document.getElementById('tagsWrap');
-  tw.innerHTML = '';
-  (d.signals || []).forEach(s => {
-    const tag = document.createElement('span');
-    tag.className = `tag tag-${s.type}`;
-    tag.textContent = s.label;
-    tw.appendChild(tag);
-  });
+      var tagRow = document.getElementById('tagRow');
+      tagRow.innerHTML = '';
+      (d.signals || []).forEach(function (s) {
+        var t = document.createElement('span');
+        t.className = 'tag ' + (s.type === 'positive' ? 'tpos' : s.type === 'negative' ? 'tneg' : 'tneu');
+        t.textContent = s.label;
+        tagRow.appendChild(t);
+      });
 
-  // Summary
-  document.getElementById('summaryText').textContent = d.summary || '';
+      document.getElementById('sumText').textContent = d.summary;
+      document.getElementById('draftText').textContent = d.draftResponse;
+      document.getElementById('resultsEl').style.display = 'block';
+    }
 
-  // Draft
-  currentDraft = d.draftResponse || '';
-  document.getElementById('draftArea').textContent = currentDraft;
-  const toneTag = document.getElementById('toneTag');
-  toneTag.textContent = d.tone || 'Neutral';
-  toneTag.className = `tag tag-${d.tone === 'Defensive' ? 'neg' : d.tone === 'Proactive' || d.tone === 'Reassuring' ? 'pos' : 'neu'}`;
-
-  // Recommendations
-  const rl = document.getElementById('recList');
-  rl.innerHTML = '';
-  (d.recommendations || []).forEach((r, i) => {
-    rl.innerHTML += `<div class="rec-item">
-      <div class="rec-num">${i+1}</div>
-      <div class="rec-content">
-        <div class="rec-title">${r.title}</div>
-        <div class="rec-desc">${r.description}</div>
-      </div>
-    </div>`;
-  });
-
-  // Timeline
-  const tl = document.getElementById('timelineWrap');
-  tl.innerHTML = '';
-  (d.timeline || []).forEach((t, i, arr) => {
-    tl.innerHTML += `<div class="timeline-item">
-      ${i < arr.length-1 ? '<div class="timeline-line"></div>' : ''}
-      <div class="timeline-dot">${t.emoji || '●'}</div>
-      <div class="timeline-body">
-        <div class="timeline-title">${t.action}</div>
-        <div class="timeline-time">${t.time}</div>
-      </div>
-    </div>`;
-  });
-
-  // Analysis time
-  document.getElementById('analysisTime').textContent = new Date().toLocaleTimeString();
-
-  // Save to history
-  addToHistory(originalText, d);
-
-  document.getElementById('emptyState').style.display = 'none';
-  document.getElementById('resultsSection').classList.add('visible');
-  document.querySelector('.results-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
-
-function addToHistory(text, analysis) {
-  const entry = {
-    snippet: text.substring(0, 80) + '…',
-    sentiment: analysis.sentiment,
-    score: analysis.sentimentScore,
-    risk: analysis.reputationRisk,
-    time: new Date().toLocaleTimeString(),
-    data: analysis,
-    text
-  };
-  analysisHistory.unshift(entry);
-
-  const badge = document.getElementById('historyBadge');
-  badge.textContent = analysisHistory.length;
-  badge.style.display = 'inline-block';
-
-  const hl = document.getElementById('historyList');
-  hl.innerHTML = '';
-  analysisHistory.forEach((e, idx) => {
-    const scoreColor = e.score > 20 ? '#4DFF9E' : e.score < -20 ? '#FF4444' : '#FFB84D';
-    hl.innerHTML += `<div class="history-item" onclick="loadFromHistory(${idx})">
-      <div class="history-text">${e.snippet}</div>
-      <span class="history-score" style="color:${scoreColor}">${e.sentiment}</span>
-      <span class="history-time">${e.time}</span>
-    </div>`;
-  });
-}
-
-function loadFromHistory(idx) {
-  const e = analysisHistory[idx];
-  document.getElementById('inputText').value = e.text;
-  updateCharCount();
-  switchView('analyze');
-  document.querySelectorAll('.nav-item')[0].classList.add('active');
-  document.querySelectorAll('.nav-item')[1].classList.remove('active');
-  currentAnalysis = e.data;
-  renderResults(e.data, e.text);
-}
-
-async function rewriteDraft(style) {
-  if (!currentDraft) return;
-  const btn = event.currentTarget;
-  btn.disabled = true;
-  btn.textContent = 'Rewriting…';
-
-  const styleInstructions = {
-    formal: 'formal, corporate, legal-safe language suitable for a press release',
-    empathetic: 'warm, empathetic, human tone that acknowledges stakeholder concerns',
-    brief: 'very concise — 2 sentences maximum, direct and clear'
-  };
-
-  const prompt = `Rewrite the following PR communications response in a ${styleInstructions[style]} style. Return ONLY the rewritten response text, no preamble or explanation.
-
-Original: ${currentDraft}`;
-
-  try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 500,
-        messages: [{ role: 'user', content: prompt }]
-      })
-    });
-    const data = await res.json();
-    const newDraft = data.content.map(i => i.text || '').join('').trim();
-    currentDraft = newDraft;
-    document.getElementById('draftArea').textContent = newDraft;
-    showToast('Draft rewritten');
-  } catch(e) {
-    showError('Rewrite failed. Try again.');
-  } finally {
-    btn.disabled = false;
-    btn.textContent = style === 'formal' ? 'Rewrite formal ↗' : style === 'empathetic' ? 'Rewrite empathetic ↗' : 'Rewrite brief ↗';
-  }
-}
-
-function copyDraft() {
-  if (!currentDraft) return;
-  navigator.clipboard.writeText(currentDraft).then(() => showToast('Copied to clipboard'));
-}
-
-function showToast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2000);
-}
-</script>
+    function setLoading(on) {
+      document.getElementById('loadEl').style.display = on ? 'flex' : 'none';
+      document.getElementById('runBtn').disabled = on;
+    }
+    function showErr(msg) {
+      var el = document.getElementById('errEl');
+      el.textContent = msg;
+      el.style.display = 'block';
+    }
+    function hideErr() {
+      document.getElementById('errEl').style.display = 'none';
+    }
+  </script>
 </body>
 </html>
