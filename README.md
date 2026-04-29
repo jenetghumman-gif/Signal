@@ -1,20 +1,19 @@
 # PR Intelligence Engine
 
-A full-stack AI-powered PR analysis tool. Paste any news article or brand mention and get sentiment scoring, reputation risk assessment, and a drafted comms response — powered by Claude.
+A full-stack AI-powered PR analysis tool — no API key required.
+Uses HuggingFace `transformers` models running entirely on your machine.
 
-## Project structure
+## Models used (auto-downloaded on first run, ~1.5GB total)
 
-```
-pr-intelligence/
-├── backend/
-│   ├── main.py            # FastAPI app
-│   ├── requirements.txt
-│   └── .env.example
-└── frontend/
-    └── index.html         # Single-file frontend
-```
+| Task | Model |
+|------|-------|
+| Sentiment analysis | `cardiffnlp/twitter-roberta-base-sentiment-latest` |
+| Urgency + signal detection | `facebook/bart-large-mnli` (zero-shot classification) |
+| Summarization | `facebook/bart-large-cnn` |
 
-## Setup
+All models run locally — nothing leaves your machine.
+
+## Quick start
 
 ### 1. Backend
 
@@ -23,51 +22,44 @@ cd backend
 
 # Create and activate a virtual environment
 python -m venv venv
-source venv/bin/activate        # Mac/Linux
+source venv/bin/activate        # Mac / Linux
 # venv\Scripts\activate         # Windows
 
 # Install dependencies
 pip install -r requirements.txt
 
-# Add your API key
-cp .env.example .env
-# Open .env and replace with your real Anthropic API key
-
-# Run the server
+# Start the server
 uvicorn main:app --reload
-# Server runs at http://localhost:8000
+# Runs at http://localhost:8000
+# First run will download models (~1.5GB) — this takes a few minutes
 ```
 
 ### 2. Frontend
 
-Open `frontend/index.html` directly in your browser — no build step needed.
+Just open `frontend/index.html` in your browser. No build step needed.
 
-Make sure the `API_BASE` at the top of the script tag matches where your backend is running (default: `http://localhost:8000`).
+The `API_BASE` at the top of the script points to `http://localhost:8000` by default.
 
-## API
+## API reference
 
 ### POST /analyze
-
-**Request body:**
 ```json
 {
-  "text": "Article or mention text here...",
+  "text": "Article text here...",
   "industry": "a technology company"
 }
 ```
 
-**Response:**
+Returns:
 ```json
 {
   "sentiment": "Negative",
-  "sentimentScore": -72,
+  "sentimentScore": -82,
   "reputationRisk": 9,
   "urgency": "Critical",
-  "urgencyReason": "Safety concerns and ongoing media coverage require immediate response.",
+  "urgencyReason": "Immediate public attention demands a rapid, coordinated response.",
   "signals": [
-    { "label": "Safety recall risk", "type": "negative" },
-    { "label": "Whistleblower leak", "type": "negative" },
-    { "label": "Stock price drop", "type": "negative" }
+    { "label": "Safety Recall Risk", "type": "negative" }
   ],
   "summary": "...",
   "draftResponse": "..."
@@ -75,11 +67,12 @@ Make sure the `API_BASE` at the top of the script tag matches where your backend
 ```
 
 ### GET /health
+Returns `{ "status": "ok" }` — use for deployment health checks.
 
-Returns `{ "status": "ok" }` — useful for deployment health checks.
+## Deployment (portfolio / demo)
 
-## Deployment
+1. Deploy the FastAPI backend to **Azure App Service** or **AWS App Runner**
+2. Set `API_BASE` in `frontend/index.html` to your deployed URL
+3. Host the frontend on **Azure Static Web Apps**, **Netlify**, or **S3 + CloudFront**
 
-For production, deploy the FastAPI backend to **Azure App Service** or **AWS Lambda** (via Mangum). Set `ANTHROPIC_API_KEY` as an environment variable in your cloud provider's config — never commit it to source control.
-
-Update `API_BASE` in `index.html` to your deployed backend URL, then host the frontend on any static host (Azure Static Web Apps, S3, Netlify, etc.).
+No environment variables or secrets needed — the models are baked in.
